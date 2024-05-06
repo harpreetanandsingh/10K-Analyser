@@ -23,6 +23,7 @@ classifier_model_name = 'nickmuchi/distilroberta-finetuned-financial-text-classi
 classifier_emotions = ['bullish','bearish']
 classifier = pipeline('text-classification', model=classifier_model_name)
 
+@st.cache_data
 def find_emotional_sentences(text, emotions, threshold):
     sentences_by_emotion = {}
     for e in emotions:
@@ -39,6 +40,7 @@ def find_emotional_sentences(text, emotions, threshold):
     
     return sentences_by_emotion
 
+@st.cache_data
 def summarize_sentences(sentences_by_emotion,year,section, min_length, max_length):
     st.session_state[year][section] = {}
     for k in sentences_by_emotion.keys():
