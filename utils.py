@@ -39,6 +39,7 @@ def read_file(file_path):
         return file.read()
 
 # Main function to iterate over folders and read files
+@st.cache_data
 def read_files_in_folders(root_dir):
     data_arrays = []
     dict_old = {}
@@ -69,7 +70,8 @@ def read_files_in_folders(root_dir):
 def get_filings(string):
     dl = Downloader("Anonymous", "my.email@domain.com")
     dl.get("10-K", string, limit=29)
-
+ 
+@st.cache_data
 def get_itemized_10k(text, sections: list[str]=['business', 'risk', 'mda', '7a']):
     '''Extract ITEM from 10k filing text.
 
@@ -197,7 +199,8 @@ def get_itemized_10k(text, sections: list[str]=['business', 'risk', 'mda', '7a']
                 print(f'Error extracting ITEM 7A: for {fname}')
     
     return results
-
+ 
+@st.cache_data
 def get_itemized_10k_old(text, sections: list[str]=['business', 'risk', 'mda', '7a']):
     '''Extract ITEM from 10k filing text.
 
