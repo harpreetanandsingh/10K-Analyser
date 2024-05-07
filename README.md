@@ -2,7 +2,7 @@
  
 This is an SEC 10-K form analyzer which extracts useful data from the 10-K filings of a company(last 29 years) and gives insights into the data. It is implemented as a streamlit application for ease of use.
 
-The Project Demo Video can be found `[here]``(https://www.loom.com/share/f6485d1f0d224d89af0e9b02dcebb264?sid=ef11b2ef-d979-44c8-bb4b-5c6bfd2bdd9f)`
+The Project Demo Video can be found [here](https://www.loom.com/share/f6485d1f0d224d89af0e9b02dcebb264?sid=ef11b2ef-d979-44c8-bb4b-5c6bfd2bdd9f)
 
 # How to Install
 
