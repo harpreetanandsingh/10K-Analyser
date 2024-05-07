@@ -12,6 +12,7 @@ import cohere
 from cohere import ClassifyExample
 import json
 import time
+import matplotlib.pyplot as plt
 
 co = cohere.Client("Q7IK6W3dGquUbFx90A7VAqoL88nZgZObkVdRUXEl")
 ########## Setting the page configuration ###############
@@ -54,32 +55,28 @@ classifier_emotions = ['Bullish','Bearish']
 
 # classifier = pipeline("zero-shot-classification",
 #                       model="facebook/bart-large-mnli")
-@st.cache_data
+nltk.download('punkt')
+summarizer = pipeline('summarization', model='t5-base')
+classifier_model_name = 'nickmuchi/distilroberta-finetuned-financial-text-classification'
+classifier_emotions = ['bullish','bearish']
+classifier = pipeline('text-classification', model=classifier_model_name)
+
 def find_emotional_sentences(text, emotions, threshold):
     sentences_by_emotion = {}
     for e in emotions:
         sentences_by_emotion[e] = []
     sentences = nltk.sent_tokenize(text)
-
     print(f'Document has {len(text)} characters and {len(sentences)} sentences.')
     for s in sentences:
-        if len(s) <= 512 and len(s)>0:  # Check if the sentence length is less than or equal to 512(this was added as the model could take tensor of max size 512)
-            inputs = []
-            inputs.append(s)
-            response = co.classify(inputs=inputs,examples=examples)
-            #response = json.loads(response)
-            #st.write(response)
-            prediction = response.classifications[0].prediction
-            confidence = response.classifications[0].confidence
-            time.sleep(0.6) #only 100 api calls per minute are there for the free version
-            #prediction = classifier(s)
-            if prediction != 'neutral' and confidence > float(threshold):
-                sentences_by_emotion[prediction].append(s)
+        if len(s) <= 512:  # Check if the sentence length is less than or equal to 512(this was added as the model could take tensor of max size 512)
+            prediction = classifier(s)
+            if prediction[0]['label'] != 'neutral' and prediction[0]['score'] > threshold:
+                sentences_by_emotion[prediction[0]['label']].append(s)
     for e in emotions:
         print(f'{e}: {len(sentences_by_emotion[e])} sentences')
     
     return sentences_by_emotion
-@st.cache_data
+
 def summarize_sentences(sentences_by_emotion,year,section, min_length, max_length):
     st.session_state[year][section] = {}
     for k in sentences_by_emotion.keys():
@@ -91,12 +88,11 @@ def summarize_sentences(sentences_by_emotion,year,section, min_length, max_lengt
             st.session_state[year][section][k] = summary[0]['summary_text']
             #st.write(f" {summary[0]['summary_text']}")
             
-    if (len(sentences_by_emotion['Bearish'])== 0 or len(sentences_by_emotion['Bullish'])==0):
+    if (len(sentences_by_emotion['bearish'])== 0 or len(sentences_by_emotion['bullish'])==0):
         bullish_ratio = 0
     else:
-        bullish_ratio = len(sentences_by_emotion['Bullish'])/len(sentences_by_emotion['Bearish'])
+        bullish_ratio = len(sentences_by_emotion['bullish'])/len(sentences_by_emotion['bearish'])
     st.session_state[year][section]["bullish_ratio"] = bullish_ratio
-    
 
 
 
@@ -119,7 +115,21 @@ with st.sidebar:
     
 #######################
 # Dashboard Main Panel
-col = st.columns((1.5, 4.5, 2), gap='medium')
+col = st.columns((4.5, 1.5, 2), gap='medium')
+result_new = {"2011":None,
+              "2012":None,
+              "2013":None,
+              "2014":None,
+              "2015":None,
+              "2016":None,
+              "2017":None,
+              "2018":None,
+              "2019":None,
+              "2020":None,
+              "2021":None,
+              "2022":None,
+              "2023":None
+              }
               
 with col[0]:
     
@@ -130,7 +140,7 @@ with col[0]:
     #st.write(dict)
     st.session_state['old'] = result_old
     st.session_state['new'] = result_new
-st.markdown("### Analysis being done, Kindly wait")
+    st.markdown("### Analysis being done, Kindly wait")
 
 for year in range(start_year,end_year+1):
 
@@ -189,40 +199,50 @@ for year in range(start_year,end_year+1):
     st.markdown(f"{year} ✅")
 
 year_ratios = []
-with col[1]:
-    st.markdown('#### Results')
-    for year in range(1995,2024):
-        year = str(year)
-        if year in st.session_state:
-            if 'business' in st.session_state[year]:
-                if 'bullish_ratio' in st.session_state[year]['business']:
-                    business_ratio = st.session_state[year]['business']['bullish_ratio']
-                else:
-                    business_ratio = 0
-            if 'risk' in st.session_state[year]:
-                if 'bullish_ratio' in st.session_state[year]['risk']:
-                    risk_ratio = st.session_state[year]['risk']['bullish_ratio']
-                else:
-                    risk_ratio = 0
-            if 'mda' in st.session_state[year]:
-                if 'bullish_ratio' in st.session_state[year]['mda']:
-                    mda_ratio = st.session_state[year]['mda']['bullish_ratio']
-                else:
-                    mda_ratio = 0
-            if '7a' in st.session_state[year]:
-                if 'bullish_ratio' in st.session_state[year]['7a']:
-                    _7a_ratio = st.session_state[year]['7a']['bullish_ratio']
-                else:
-                    _7a_ratio = 0
+years=[]
+st.markdown('#### Results')
+for year in range(start_year,end_year):
+    years.append(year)
+    year = str(year)
+    if year in st.session_state:
+        if 'business' in st.session_state[year]:
+            if 'bullish_ratio' in st.session_state[year]['business']:
+                business_ratio = st.session_state[year]['business']['bullish_ratio']
+        else:
+            business_ratio = 0
+        if 'risk' in st.session_state[year]:
+            if 'bullish_ratio' in st.session_state[year]['risk']:
+                risk_ratio = st.session_state[year]['risk']['bullish_ratio']
+        else:
+            risk_ratio = 0
+        if 'mda' in st.session_state[year]:
+            if 'bullish_ratio' in st.session_state[year]['mda']:
+                mda_ratio = st.session_state[year]['mda']['bullish_ratio']
+        else:
+            mda_ratio = 0
+        if '7a' in st.session_state[year]:
+            if 'bullish_ratio' in st.session_state[year]['7a']:
+                _7a_ratio = st.session_state[year]['7a']['bullish_ratio']
+        else:
+            _7a_ratio = 0
 
 
-            year_ratio = (business_ratio+risk_ratio+mda_ratio+_7a_ratio)/4
-            year_ratios.append(year_ratio)
+        year_ratio = (business_ratio+risk_ratio+mda_ratio+_7a_ratio)/4
+        year_ratios.append(year_ratio)
+    else:
+        year_ratio = 0
+        year_ratios.append(year_ratio)
     
+if len(year_ratios) != 0:
     average_bullish_index = sum(year_ratios)/len(year_ratios)
-    st.write(f"### Bullish Index: {average_bullish_index}")
+else:
+    average_bullish_index = 0
+st.write(f"### Bullish Index: {average_bullish_index}")
 
-
+x = years
+y = year_ratios
+df = pd.DataFrame({'x': x, 'y':y})
+st.line_chart(df,x='x',y='y')
 
     # tables_with_headings = extract_tables_from_text_file('sec-edgar-filings/AAPL/10-K/0001193125-11-282113/full-submission.txt')
     # dataframes = convert_tables_to_dataframes(tables_with_headings)
